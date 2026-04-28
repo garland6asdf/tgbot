@@ -9,7 +9,7 @@ def create_user_table():
         tg_username TEXT UNIQUE,
         real_name TEXT,
         age INTEGER,
-        number INTEGER
+        number VARCHAR(13)
         )
         '''
         cur.execute(query)
@@ -45,7 +45,7 @@ def get_my_info(tg_username):
         cur = con.cursor()
         query = '''
         SELECT tg_username, real_name, age, number FROM users
-            WHERE tg_username = ?
+        WHERE tg_username = ?
         '''
         cur.execute(query, (tg_username,))
         return cur.fetchone()
@@ -57,5 +57,14 @@ def drop_table():
         query = 'DROP TABLE users'
         cur.execute(query)
 
+
+def remove_user(tg_username):
+    with sqlite3.connect('db.sqlite') as con:
+        cur = con.cursor()
+        query = '''
+        DELETE FROM users
+        WHERE tg_username = ?
+        '''
+        cur.execute(query, (tg_username,))
 
 create_user_table()

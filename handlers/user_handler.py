@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 from keyboards.user_keyboard import get_back_keyboard, get_main_keyboard
 from states import UserDataForm
 
-from database import insert_into_user_table, get_my_info
+from database import insert_into_user_table, get_my_info, remove_user
 
 
 router = Router()
@@ -13,18 +13,17 @@ router = Router()
 
 @router.message(Command('start'))
 async def cmd_start(message: types.Message, state: FSMContext):
-    state.clear()
+    await state.clear()
     await message.answer(
-        'Ку, я бот разработанный багданом',
+        'Я бот разработанный garland!',
         reply_markup=get_main_keyboard()
     )
-
 
 @router.callback_query(F.data == 'about')
 async def button_about(callback: types.CallbackQuery):
     await callback.answer()
     await callback.message.edit_text(
-        'Я показательный бот. Вот и все нах',
+        'Я показательный бот',
         reply_markup=get_back_keyboard()
         )
 
@@ -36,7 +35,7 @@ async def button_user_id(callback: types.CallbackQuery):
     await callback.message.edit_text(
         f'Твой ID: {user_id}',
         reply_markup=get_back_keyboard()
-        )
+    )
 
 
 @router.callback_query(F.data == 'info_about_user')
@@ -45,7 +44,7 @@ async def button_info_about_user(callback: types.CallbackQuery):
     username = callback.from_user.username
     info = get_my_info(username)
     if info is not None:
-        await callback.message.answer(
+        await callback.message.edit_text(
             f'Твой юз: {info[0]}\n'
             f'Твое имя: {info[1]}\n'
             f'Твой возраст: {info[2]}\n'
@@ -53,18 +52,29 @@ async def button_info_about_user(callback: types.CallbackQuery):
             reply_markup=get_back_keyboard()
         )
     else:
-        await callback.message.answer(
+        await callback.message.edit_text(
         'Твоей информации в базе данных нету. Запишись!',
         reply_markup=get_back_keyboard()
         )
 
 @router.callback_query(F.data == "back")
 async def back_to_main(callback: types.CallbackQuery, state: FSMContext):
-    state.clear()
+    await state.clear()
     await callback.answer()
     await callback.message.edit_text(
         'Ку, я бот разработанный Багданом',
         reply_markup=get_main_keyboard()
+    )
+
+
+@router.callback_query(F.data == "removal")
+async def removal(callback: types.CallbackQuery):
+    await callback.answer()
+    tg_username = callback.from_user.username
+    remove_user(tg_username)
+    await callback.message.edit_text(
+        'Ваши данные удалены из базы данных!',
+        reply_markup=get_back_keyboard()
     )
 
 
@@ -82,32 +92,72 @@ async def button_writing(callback: types.CallbackQuery, state: FSMContext):
         )
     else:
         await callback.message.edit_text(
-            'Сорян, но в базе данных твоя запись уже есть. Сделать новую не получится(((',
-            reply_markup=get_back_keyboard()
+            'В базе данных ваша запись уже есть\n'
+            'Но вы можете удалить ее, позже перезаписав по новой!',
+            reply_markup=get_back_keyboard(remove=True)
         )
 
 
 @router.message(UserDataForm.name)
 async def state_name(message: types.Message, state: FSMContext):
-    await state.update_data(name=message.text)
-    await state.set_state(UserDataForm.age)
-    await message.answer(
-        f'Привит {message.text}! Теперь напиши мне свой возраст: '
-    )
+    if 0 >= len(message.text) or len(message.text) > 20:
+        await message.answer(
+        'Ваше имя либо слишком длинное, либо короткое.\n'
+        'Введите снова:',
+        reply_markup=get_back_keyboard()
+        )
+        await state.set_state(UserDataForm.name)
+    else:
+        await state.update_data(name=message.text)
+        await state.set_state(UserDataForm.age)
+        await message.answer(
+            f'Привет {message.text}! Теперь напиши мне свой возраст: '
+        )
 
 
 @router.message(UserDataForm.age)
 async def state_age(message: types.Message, state: FSMContext):
-    await state.update_data(age=int(message.text))
+    try:
+        age = int(message.text)
+    except ValueError:
+        await message.answer(
+            'Снова введите возраст, но уже цифрами:'
+        )
+        await state.set_state(UserDataForm.age)
+        return
+    if age < 5 or age > 110:
+        await message.answer(
+            'Пожалуйста не врите.\n'
+            'Введите возраст заново:',
+            reply_markup=get_back_keyboard()
+        )
+        await state.set_state(UserDataForm.age)
+        return
+    await state.update_data(age=age)
     await state.set_state(UserDataForm.number)
     await message.answer(
-        f'А щас напиши мне свой номер телефона: '
+        'А сейчас напиши мне свой номер телефона: '
     )
 
 
 @router.message(UserDataForm.number)
 async def state_number(message: types.Message, state: FSMContext):
-    await state.update_data(number=int(message.text))
+    try:
+        number = int(message.text)
+    except ValueError:
+        await message.answer(
+            'Снова введите номер, но только цифрами:'
+        )
+        await state.set_state(UserDataForm.number)
+        return
+    if len(message.text) < 11 or len(message.text) > 15:
+        await message.answer(
+            'Номер телефона слишком короткий или длинный\n'
+            'Введите заново:'
+        )
+        await state.set_state(UserDataForm.number)
+        return
+    await state.update_data(number=message.text)
     data = await state.get_data()
     insert_into_user_table(
         tg_username=message.from_user.username,

@@ -1,6 +1,5 @@
 import asyncio
 from aiogram import Router, types, F
-from aiogram.filters import Command
 from keyboards.admin_keyboard import get_main_admin_keyboard
 from keyboards.user_keyboard import get_back_keyboard
 
@@ -19,8 +18,7 @@ async def button_for_admins(callback: types.CallbackQuery):
         )
     else:
         await callback.message.edit_text(
-            'Ты не админ божж 🤣\n'
-            'Пиздуй в меню или бей челом батюшке Богдану, чтоб добавил в админы 🥰',
+            'Вы не являетесь админом.',
             reply_markup=get_back_keyboard()
     )
 
