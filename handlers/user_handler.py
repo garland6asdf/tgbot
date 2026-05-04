@@ -1,15 +1,25 @@
-import asyncio
-from aiogram import Router, types, F
+from aiogram import F, Router, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from keyboards.user_keyboard import get_back_keyboard, get_main_keyboard
+
+import currency
+from database import get_my_info, insert_into_user_table, remove_user
+from keyboards.user_keyboard import (get_back_keyboard, get_currency_keyboard,
+                                     get_main_keyboard)
 from states import UserDataForm
 
-from database import insert_into_user_table, get_my_info, remove_user
-
+CURRENCY_MAP = {
+    'usd': 'latest/USD',
+    'eur': 'latest/EUR',
+    'rub': 'latest/RUB',
+    'jpy': 'latest/JPY',
+    'gbp': 'latest/GBP',
+    'cny': 'latest/CNY',
+    'cad': 'latest/CAD',
+    'aud': 'latest/AUD',
+}
 
 router = Router()
-
 
 @router.message(Command('start'))
 async def cmd_start(message: types.Message, state: FSMContext):
@@ -23,7 +33,7 @@ async def cmd_start(message: types.Message, state: FSMContext):
 async def button_about(callback: types.CallbackQuery):
     await callback.answer()
     await callback.message.edit_text(
-        'Я показательный бот',
+        'Я показательный бот!👁️👁️',
         reply_markup=get_back_keyboard()
         )
 
@@ -56,6 +66,7 @@ async def button_info_about_user(callback: types.CallbackQuery):
         'Твоей информации в базе данных нету. Запишись!',
         reply_markup=get_back_keyboard()
         )
+
 
 @router.callback_query(F.data == "back")
 async def back_to_main(callback: types.CallbackQuery, state: FSMContext):
@@ -169,3 +180,19 @@ async def state_number(message: types.Message, state: FSMContext):
         '✅ Данные сохранены!',
         reply_markup=get_back_keyboard()
     )
+
+
+@router.callback_query(F.data=='currency')
+async def button_currency(callback: types.CallbackQuery):
+    await callback.answer()
+    await callback.message.edit_text(
+        'Относительно какой валюты хотите смотреть курсы?',
+        reply_markup=get_currency_keyboard()
+    )
+
+
+@router.callback_query(F.data.in_(CURRENCY_MAP.keys()))
+async def button_currency_select(callback: types.CallbackQuery):
+    result = currency.main(currency=CURRENCY_MAP[callback.data])
+    await callback.answer()
+    await callback.message.edit_text(result, reply_markup=get_back_keyboard())

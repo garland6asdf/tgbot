@@ -1,11 +1,16 @@
-import asyncio
-from aiogram import Router, types, F
+import os
+
+from aiogram import F, Router, types
+from dotenv import load_dotenv
+
+from database import get_all_users
 from keyboards.admin_keyboard import get_main_admin_keyboard
 from keyboards.user_keyboard import get_back_keyboard
 
-from cfg import ADMIN_IDS
-from database import get_all_users
 router = Router()
+
+load_dotenv()
+ADMIN_IDS = list(map(int, os.getenv('ADMIN_IDS').split(',')))
 
 @router.callback_query(F.data == 'admin_panel')
 async def button_for_admins(callback: types.CallbackQuery):

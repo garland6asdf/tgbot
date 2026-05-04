@@ -1,7 +1,14 @@
+import os
+
 from aiogram import Bot, Dispatcher
-from handlers import user_handler, admin_handler
-from cfg import TOKEN
+from dotenv import load_dotenv
+
 from handlers import admin_handler, user_handler
+
+load_dotenv()
+
+TOKEN = os.getenv('BOT_TOKEN')
+
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
