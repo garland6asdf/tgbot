@@ -73,7 +73,7 @@ async def back_to_main(callback: types.CallbackQuery, state: FSMContext):
     await state.clear()
     await callback.answer()
     await callback.message.edit_text(
-        'Ку, я бот разработанный Багданом',
+        'Я бот разработанный garland!',
         reply_markup=get_main_keyboard()
     )
 
@@ -126,7 +126,7 @@ async def state_name(message: types.Message, state: FSMContext):
         )
 
 
-@router.message(UserDataForm.age)
+@router.message (UserDataForm.age)
 async def state_age(message: types.Message, state: FSMContext):
     try:
         age = int(message.text)
